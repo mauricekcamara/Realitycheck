@@ -41,10 +41,14 @@ export const INVESTMENT_SCENARIOS: InvestmentScenario[] = [
 export function calculatePersonalEdge(sessions: GamblingSession[]): number {
   if (sessions.length === 0) return 0;
   
-  const totalBet = sessions.reduce((sum, session) => sum + session.betAmount, 0);
-  const totalLoss = sessions.reduce((sum, session) => sum + Math.abs(Math.min(0, session.netResult)), 0);
+  const totalWagered = sessions.reduce((sum, session) => sum + session.betAmount, 0);
+  const totalNetResult = sessions.reduce((sum, session) => sum + session.netResult, 0);
   
-  return totalBet > 0 ? (totalLoss / totalBet) * 100 : 0;
+  // Personal edge = (Amount Wagered - Amount Returned) / Amount Wagered * 100
+  // Amount Returned = Amount Wagered + Net Result
+  // So: (Amount Wagered - (Amount Wagered + Net Result)) / Amount Wagered * 100
+  // = (-Net Result) / Amount Wagered * 100
+  return totalWagered > 0 ? (-totalNetResult / totalWagered) * 100 : 0;
 }
 
 export function calculateUserProfile(sessions: GamblingSession[]): UserProfile {
@@ -56,24 +60,28 @@ export function calculateUserProfile(sessions: GamblingSession[]): UserProfile {
   const averageSessionLoss = sessionsCount > 0 ? netLoss / sessionsCount : 0;
   const personalEdge = calculatePersonalEdge(sessions);
   
-  // Calculate theoretical edge based on games played
-  const gameTypeCounts: { [key: string]: number } = {};
+  // Calculate theoretical edge based on games played (weighted by amount wagered)
+  const gameTypeStats: { [key: string]: { sessions: number; totalWagered: number } } = {};
   sessions.forEach(session => {
-    gameTypeCounts[session.gameType] = (gameTypeCounts[session.gameType] || 0) + 1;
+    if (!gameTypeStats[session.gameType]) {
+      gameTypeStats[session.gameType] = { sessions: 0, totalWagered: 0 };
+    }
+    gameTypeStats[session.gameType].sessions++;
+    gameTypeStats[session.gameType].totalWagered += session.betAmount;
   });
   
   let theoreticalEdge = 0;
-  let totalGames = 0;
+  let totalWagered = 0;
   
-  Object.entries(gameTypeCounts).forEach(([gameType, count]) => {
+  Object.entries(gameTypeStats).forEach(([gameType, stats]) => {
     const gameInfo = GAME_TYPES[gameType as keyof typeof GAME_TYPES];
     if (gameInfo) {
-      theoreticalEdge += gameInfo.edge * count;
-      totalGames += count;
+      theoreticalEdge += gameInfo.edge * stats.totalWagered;
+      totalWagered += stats.totalWagered;
     }
   });
   
-  theoreticalEdge = totalGames > 0 ? theoreticalEdge / totalGames : 0;
+  theoreticalEdge = totalWagered > 0 ? theoreticalEdge / totalWagered : 0;
   
   return {
     totalGambled,
@@ -94,8 +102,12 @@ export function calculateProfitabilityAnalysis(
   sessionsPerMonth: number
 ): ProfitabilityAnalysis {
   const monthlyLoss = (averageBet * gameEdge / 100) * sessionsPerMonth;
-  const timeToZero = bankroll / monthlyLoss;
-  const probabilityOfProfit = Math.max(0, 100 - (gameEdge * 10)); // Simplified calculation
+  const timeToZero = monthlyLoss > 0 ? bankroll / monthlyLoss : Infinity;
+  
+  // More realistic probability calculation based on house edge
+  // For most casino games, probability of long-term profit is very low
+  // This is a simplified but more accurate estimate
+  const probabilityOfProfit = Math.max(0, Math.min(100, 50 - (gameEdge * 5)));
   
   return {
     bankroll,
@@ -133,14 +145,25 @@ export function calculateDebtImpact(
   interestRate: number,
   gamblingLoss: number
 ): { originalPayoffDate: Date; newPayoffDate: Date; delayInWeeks: number } {
-  // Simplified debt calculation
+  // Proper loan payoff calculation
   const monthlyInterest = interestRate / 12 / 100;
-  const originalMonths = Math.log(monthlyPayment / (monthlyPayment - debtAmount * monthlyInterest)) / Math.log(1 + monthlyInterest);
+  
+  // Calculate original payoff time using the loan amortization formula
+  // n = -log(1 - (P * r) / A) / log(1 + r)
+  // where n = number of payments, P = principal, r = monthly rate, A = monthly payment
+  const originalMonths = monthlyPayment > debtAmount * monthlyInterest ? 
+    -Math.log(1 - (debtAmount * monthlyInterest) / monthlyPayment) / Math.log(1 + monthlyInterest) : 
+    Infinity;
+  
   const originalPayoffDate = new Date();
   originalPayoffDate.setMonth(originalPayoffDate.getMonth() + Math.ceil(originalMonths));
   
+  // Calculate new payoff time with increased debt
   const newDebtAmount = debtAmount + gamblingLoss;
-  const newMonths = Math.log(monthlyPayment / (monthlyPayment - newDebtAmount * monthlyInterest)) / Math.log(1 + monthlyInterest);
+  const newMonths = monthlyPayment > newDebtAmount * monthlyInterest ? 
+    -Math.log(1 - (newDebtAmount * monthlyInterest) / monthlyPayment) / Math.log(1 + monthlyInterest) : 
+    Infinity;
+  
   const newPayoffDate = new Date();
   newPayoffDate.setMonth(newPayoffDate.getMonth() + Math.ceil(newMonths));
   

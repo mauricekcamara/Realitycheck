@@ -145,7 +145,11 @@ export default function EdgeCalculatorScreen() {
     });
 
     return Object.entries(gameTypeStats).map(([gameType, stats]) => {
-      const edge = stats.totalBet > 0 ? (stats.totalLoss / stats.totalBet) * 100 : 0;
+      // Calculate personal edge using the same formula as calculatePersonalEdge
+      const totalNetResult = sessions
+        .filter(s => s.gameType === gameType)
+        .reduce((sum, session) => sum + session.netResult, 0);
+      const edge = stats.totalBet > 0 ? (-totalNetResult / stats.totalBet) * 100 : 0;
       const theoreticalEdge = GAME_TYPES[gameType as keyof typeof GAME_TYPES]?.edge || 0;
       
       return {

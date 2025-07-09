@@ -194,6 +194,9 @@ export default function QuickAddSession({ visible, onClose, onAddSession }: Quic
                   placeholder="0"
                   placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
+                  returnKeyType="done"
+                  onSubmitEditing={() => {}}
+                  blurOnSubmit={true}
                 />
               </View>
               
@@ -206,6 +209,9 @@ export default function QuickAddSession({ visible, onClose, onAddSession }: Quic
                   placeholder="0"
                   placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
+                  returnKeyType="done"
+                  onSubmitEditing={() => {}}
+                  blurOnSubmit={true}
                 />
               </View>
             </View>
@@ -220,6 +226,9 @@ export default function QuickAddSession({ visible, onClose, onAddSession }: Quic
                   placeholder="0"
                   placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
+                  returnKeyType="done"
+                  onSubmitEditing={() => {}}
+                  blurOnSubmit={true}
                 />
               </View>
               
@@ -232,6 +241,9 @@ export default function QuickAddSession({ visible, onClose, onAddSession }: Quic
                   placeholder="0"
                   placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
+                  returnKeyType="done"
+                  onSubmitEditing={() => {}}
+                  blurOnSubmit={true}
                 />
               </View>
             </View>
@@ -250,11 +262,17 @@ export default function QuickAddSession({ visible, onClose, onAddSession }: Quic
             )}
           </View>
 
-          {/* Add Button */}
-          <TouchableOpacity style={styles.addButton} onPress={handleAddSession}>
-            <Ionicons name="add-circle" size={24} color="#ffffff" />
-            <Text style={styles.addButtonText}>Add Session</Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.addButton} onPress={handleAddSession}>
+              <Ionicons name="add-circle" size={24} color="#ffffff" />
+              <Text style={styles.addButtonText}>Add Session</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -399,14 +417,34 @@ const styles = StyleSheet.create({
   negativeResult: {
     color: '#ef4444',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6b7280',
+    padding: 16,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   addButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#059669',
     padding: 16,
     borderRadius: 12,
-    marginTop: 16,
+    marginLeft: 8,
   },
   addButtonText: {
     color: '#ffffff',
